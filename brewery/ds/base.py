@@ -27,6 +27,7 @@ from __future__ import absolute_import
 import urllib2
 import urlparse
 import brewery.dq
+from brewery.metadata import FieldList
 from ..metadata import collapse_record, Field
 
 def open_resource(resource, mode = None):
@@ -62,7 +63,7 @@ class DataStream(object):
 
     def __init__(self):
         """
-        A data stream object – abstract class.
+        A data stream object.
 
         The subclasses should provide:
 
@@ -90,7 +91,7 @@ class DataStream(object):
         In this case, the initialize() and finalize() methods are called
         automatically.
         """
-        pass
+        self.fields = FieldList()
 
     def initialize(self):
         """Delayed stream initialisation code. Subclasses might override this

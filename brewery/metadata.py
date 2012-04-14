@@ -225,7 +225,6 @@ class FieldList(object):
         * `storage_type` is set to ``unknown``
         * `analytical_type` is set to ``typeless``
         """
-        super(FieldList, self).__init__()
 
         # FIXME: use OrderedDict (Python 2.7+)
         self._fields = []
@@ -234,7 +233,7 @@ class FieldList(object):
 
         if fields:
             # Convert input to Field instances
-            # This is convenience, so one can pass list of strsings, for example
+            # This is convenience, so one can pass list of strings, for example
 
             for field in fields:
                 self.append(field)

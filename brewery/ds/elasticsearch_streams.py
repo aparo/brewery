@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import time
 from ..dq.base import FieldTypeProbe
 from .base import DataSource, DataTarget
 from ..metadata import expand_record, Field
 
 try:
     from pyes.es import ES
+    from pyes.exceptions import TypeMissingException
+
 except ImportError:
     from brewery.utils import MissingPackage
     pyes = MissingPackage("pyes", "ElasticSearch streams", "http://www.elasticsearch.org/")
@@ -17,22 +18,23 @@ class ESDataSource(DataSource):
     """
     docstring for ClassName
     """
-    def __init__(self, document_type, database=None, host=None, port=None,
-                 expand=False, **elasticsearch_args):
+
+    def __init__(self, document_type, index=None, host=None, port=None, expand=False, **elasticsearch_args):
         """Creates a ElasticSearch data source stream.
 
         :Attributes:
             * document_type: elasticsearch document_type name
-            * database: database name
+            * index: index name, default is test
             * host: elasticsearch database server host, default is ``localhost``
             * port: elasticsearch port, default is ``27017``
             * expand: expand dictionary values and treat children as top-level keys with dot '.'
                 separated key path to the child..
         """
+        super(ESDataSource, self).__init__()
         self.document_type = document_type
-        self.database_name = database
-        self.host = host
-        self.port = port
+        self.index = index or "test"
+        self.host = host or "127.0.0.1"
+        self.port = port or "9200"
         self.elasticsearch_args = elasticsearch_args
         self.expand = expand
         self.connection = None
@@ -49,10 +51,10 @@ class ESDataSource(DataSource):
             server += ":" + self.port
 
         self.connection = ES(server, **args)
-        self.connection.default_indices = self.database_name
+        self.connection.default_indices = self.index
         self.connection.default_types = self.document_type
 
-    def read_fields(self, limit=0):
+    def read_fields(self, limit=0, collapse = False):
         keys = []
         probes = {}
 
@@ -170,21 +172,23 @@ class ESRecordIterator(object):
 class ESDataTarget(DataTarget):
     """docstring for ClassName
     """
-    def __init__(self, document_type, database="test", host="127.0.0.1", port="9200",
-                 truncate=False, expand=False, **elasticsearch_args):
+
+    def __init__(self, document_type, index="test", host="127.0.0.1", port="9200", truncate=False, expand=False,
+                 **elasticsearch_args):
         """Creates a ElasticSearch data target stream.
 
         :Attributes:
             * document_ElasticSearch elasticsearch document_type name
-            * database: database name
+            * index: database name
             * host: ElasticSearch database server host, default is ``localhost``
             * port: ElasticSearch port, default is ``9200``
             * expand: expand dictionary values and treat children as top-level keys with dot '.'
                 separated key path to the child..
             * truncate: delete existing data in the document_type. Default: False
         """
+        super(ESDataTarget, self).__init__()
         self.document_type = document_type
-        self.database_name = database
+        self.index = index
         self.host = host
         self.port = port
         self.elasticsearch_args = elasticsearch_args
@@ -193,7 +197,8 @@ class ESDataTarget(DataTarget):
         self._fields = None
 
     def initialize(self):
-        """Initialize ElasticSearch source stream:
+        """
+        Initialize ElasticSearch source stream:
         """
         from pyes.es import ES
         from pyes.exceptions import IndexAlreadyExistsException
@@ -209,27 +214,56 @@ class ESDataTarget(DataTarget):
         replace = args.pop("replace", False)
 
         self.connection = ES(server, **args)
-        self.connection.default_indices = self.database_name
+        self.connection.default_indices = self.index
         self.connection.default_types = self.document_type
 
         created = False
         if create:
             try:
-                self.connection.create_index(self.database_name)
-                self.connection.refresh(self.database_name)
+                self.connection.create_index(self.index)
+                self.connection.refresh(self.index)
                 created = True
             except IndexAlreadyExistsException:
                 pass
 
         if replace and not created:
-            self.connection.delete_index_if_exists(self.database_name)
-            time.sleep(2)
-            self.connection.create_index(self.database_name)
-            self.connection.refresh(self.database_name)
+            self.connection.delete_index_if_exists(self.index)
+            self.connection.refresh(self.index)
+            self.connection.create_index(self.index)
+            self.connection.refresh(self.index)
 
         if self.truncate:
-            self.connection.delete_mapping(self.database_name, self.document_type)
-            self.connection.refresh(self.database_name)
+            self.connection.delete_mapping(self.index, self.document_type)
+            self.connection.refresh(self.index)
+        #check mapping
+        try:
+            self.connection.get_mapping(self.document_type, self.index)
+        except TypeMissingException:
+            self.connection.put_mapping(self.document_type, self._get_mapping(), self.index)
+
+    def _get_mapping(self):
+        """Build an ES optimized mapping for the given fields"""
+        from pyes.mappings import DocumentObjectField, IntegerField, StringField, BooleanField, FloatField, DateField
+
+        document = DocumentObjectField(name=self.document_type)
+        for field in self.fields:
+            st = field.storage_type
+            if st == "unknown":
+                #lets es detect the type
+                continue
+            elif st in ["string", "text"]:
+                document.add_property(StringField(name=field.name))
+            elif st == "integer":
+                document.add_property(IntegerField(name=field.name))
+            elif st == "boolean":
+                document.add_property(BooleanField(name=field.name))
+            elif st == "date":
+                document.add_property(DateField(name=field.name))
+            elif st == "float":
+                document.add_property(FloatField(name=field.name))
+
+        return document
+
 
     def append(self, obj):
         record = obj
@@ -240,7 +274,7 @@ class ESDataTarget(DataTarget):
             record = expand_record(record)
 
         id = record.get('id') or record.get('_id')
-        self.connection.index(record, self.database_name, self.document_type, id, bulk=True)
+        self.connection.index(record, self.index, self.document_type, id, bulk=True)
 
     def finalize(self):
         self.connection.flush_bulk(forced=True)

@@ -24,7 +24,7 @@ class FieldListCase(unittest.TestCase):
         fields = brewery.FieldList(["foo", "bar"])
         fields.append("baz")
         self.assertEqual(3, len(fields))
-        
+
     def test_indexes(self):
         fields = brewery.FieldList(["a", "b", "c", "d"])
         indexes = fields.indexes( ["a", "c", "d"] )
@@ -36,22 +36,22 @@ class FieldListCase(unittest.TestCase):
     def test_deletion(self):
         fields = brewery.FieldList(["a", "b", "c", "d"])
         del fields[0]
-        
+
         self.assertEqual(["b", "c", "d"], fields.names())
-        
+
         del fields[2]
         self.assertEqual(["b", "c"], fields.names())
-        
+
         self.assertRaises(KeyError, fields.field, "d")
         self.assertEqual(2, len(fields))
-        
+
     def test_contains(self):
         fields = brewery.FieldList(["a", "b", "c", "d"])
         field = brewery.Field("a")
-        
+
         self.assertEqual(True, "a" in fields)
         self.assertEqual(True, field in fields)
-        
+
     def test_retype(self):
         fields = brewery.FieldList(["a", "b", "c", "d"])
         self.assertEqual("unknown", fields.field("a").storage_type)
@@ -61,12 +61,20 @@ class FieldListCase(unittest.TestCase):
 
         retype_dict = {"a": {"name":"foo"}}
         self.assertRaises(Exception, fields.retype, retype_dict)
-        
+
     def test_selectors(self):
         fields = brewery.FieldList(["a", "b", "c", "d"])
         selectors = fields.selectors(["b", "d"])
         self.assertEqual([False, True, False, True], selectors)
-    
+
+    def test_valid(self):
+        "Checking empty FieldList"
+        fields = brewery.FieldList(["a", "b", "c", "d"])
+        self.assertTrue(fields)
+        fields = brewery.FieldList()
+        self.assertFalse(fields)
+
+
     # FIXME: move this to separate metadata/data utils testing
     def test_coalesce(self):
         self.assertEqual(1, brewery.coalesce_value("1", "integer"))
@@ -74,5 +82,4 @@ class FieldListCase(unittest.TestCase):
         self.assertEqual(1.5, brewery.coalesce_value("1.5", "float"))
         self.assertEqual(1000, brewery.coalesce_value("1 000", "integer", strip=True))
         self.assertEqual(['1','2','3'], brewery.coalesce_value("1,2,3", "list", strip=True))
-        
-    
+
