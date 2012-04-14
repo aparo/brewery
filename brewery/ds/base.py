@@ -22,11 +22,12 @@
 # Optional (for performance):
 # * append_row(row) - row is tuple of values, raises exception if there are more values than fields
 # * append_record(record) - record is a dictionary, raises exception if dict key is not in field list
+from __future__ import absolute_import
 
 import urllib2
 import urlparse
 import brewery.dq
-from brewery.metadata import collapse_record, Field
+from ..metadata import collapse_record, Field
 
 def open_resource(resource, mode = None):
     """Get file-like handle for a resource. Conversion:
@@ -72,7 +73,7 @@ class DataStream(object):
         (:meth:`DataSource.rows`) or written to data target
         (:meth:`DataTarget.append`).
 
-        Subclasses should populate the `fields` property (or implenet an
+        Subclasses should populate the `fields` property (or implement an
         accessor).
 
         The subclasses might override:
@@ -89,7 +90,7 @@ class DataStream(object):
         In this case, the initialize() and finalize() methods are called
         automatically.
         """
-        super(DataStream, self).__init__()
+        pass
 
     def initialize(self):
         """Delayed stream initialisation code. Subclasses might override this
@@ -99,7 +100,7 @@ class DataStream(object):
         The method does not take any arguments, it expects pre-configured
         object.
         """
-        pass
+        raise NotImplementedError()
 
     def finalize(self):
         """Subclasses might put finalisation code here, for example:
@@ -110,7 +111,7 @@ class DataStream(object):
 
         Default implementation does nothing.
         """
-        pass
+        raise NotImplementedError()
 
     # Context management
     #

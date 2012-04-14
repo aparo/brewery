@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 
-import base
-from brewery import dq
 import time
-from brewery.metadata import expand_record
+from ..dq.base import FieldTypeProbe
+from .base import DataSource, DataTarget
+from ..metadata import expand_record, Field
 
 try:
     from pyes.es import ES
@@ -12,8 +13,9 @@ except ImportError:
     from brewery.utils import MissingPackage
     pyes = MissingPackage("pyes", "ElasticSearch streams", "http://www.elasticsearch.org/")
 
-class ESDataSource(base.DataSource):
-    """docstring for ClassName
+class ESDataSource(DataSource):
+    """
+    docstring for ClassName
     """
     def __init__(self, document_type, database=None, host=None, port=None,
                  expand=False, **elasticsearch_args):
@@ -66,7 +68,7 @@ class ESDataSource(base.DataSource):
                     continue
 
                 if not full_key in probes:
-                    probe = dq.FieldTypeProbe(full_key)
+                    probe = FieldTypeProbe(full_key)
                     probes[full_key] = probe
                     keys.append(full_key)
                 else:
@@ -80,7 +82,7 @@ class ESDataSource(base.DataSource):
 
         for key in keys:
             probe = probes[key]
-            field = base.Field(probe.field)
+            field = Field(probe.field)
 
             storage_type = probe.unique_storage_type
             if not storage_type:
@@ -165,7 +167,7 @@ class ESRecordIterator(object):
         else:
             return expand_record(record)
 
-class ESDataTarget(base.DataTarget):
+class ESDataTarget(DataTarget):
     """docstring for ClassName
     """
     def __init__(self, document_type, database="test", host="127.0.0.1", port="9200",

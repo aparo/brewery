@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 
 import csv
 import codecs
 import cStringIO
-import base
-import brewery.metadata
+from .base import DataSource, open_resource, DataTarget
+from ..metadata import FieldList
 
 class UTF8Recoder(object):
     """
@@ -28,7 +29,7 @@ class UTF8Recoder(object):
 def to_bool(value):
     """Return boolean value. Convert string to True when "true", "yes" or "on"
     """
-    return bool(value) or lower(value) in ["true", "yes", "on"]
+    return bool(value) or value.lower() in ["true", "yes", "on"]
 
 storage_conversion = {
     "unknown": None,
@@ -74,7 +75,7 @@ class UnicodeReader:
                     result.append(None)
                 else:
                     result.append(uni_str)
-            
+
         return result
 
     def __iter__(self):
@@ -104,7 +105,7 @@ class UnicodeWriter:
                 new_row.append(unicode(value))
             else:
                 new_row.append(None)
-                
+
         self.writer.writerow(new_row)
         # Fetch UTF-8 output from the queue ...
         data = self.queue.getvalue()
@@ -120,16 +121,16 @@ class UnicodeWriter:
         for row in rows:
             self.writerow(row)
 
-class CSVDataSource(base.DataSource):
+class CSVDataSource(DataSource):
     """docstring for ClassName
-    
+
     Some code taken from OKFN Swiss library.
     """
     def __init__(self, resource, read_header=True, dialect=None, encoding=None,
                  detect_header=False, sample_size=200, skip_rows=None,
                  empty_as_null=True,fields=None, **reader_args):
         """Creates a CSV data source stream.
-        
+
         :Attributes:
             * resource: file name, URL or a file handle with CVS data
             * read_header: flag determining whether first line contains header
@@ -143,36 +144,36 @@ class CSVDataSource(base.DataSource):
               prevent loading huge CSV files at once.
             * skip_rows: number of rows to be skipped. Default: ``None``
             * empty_as_null: treat empty strings as ``Null`` values
-            
+
         Note: avoid auto-detection when you are reading from remote URL
         stream.
-        
+
         """
         self.read_header = read_header
         self.encoding = encoding
         self.detect_header = detect_header
         self.empty_as_null = empty_as_null
-        
+
         self.sample_size = sample_size
         self.resource = resource
         self.reader_args = reader_args
         self.reader = None
         self.dialect = dialect
-        
+
         self.close_file = False
         self.skip_rows = skip_rows
         self.fields = fields
-        
+
     def initialize(self):
         """Initialize CSV source stream:
-        
+
         #. perform autodetection if required:
             #. detect encoding from a sample data (if requested)
             #. detect whether CSV has headers from a sample data (if
             requested)
         #.  create CSV reader object
         #.  read CSV headers if requested and initialize stream fields
-        
+
         If fields are explicitly set prior to initialization, and header
         reading is requested, then the header row is just skipped and fields
         that were set before are used. Do not set fields if you want to read
@@ -182,12 +183,12 @@ class CSVDataSource(base.DataSource):
         `analytical_type` = ``unknown``.
         """
 
-        self.file, self.close_file = base.open_resource(self.resource)
+        self.file, self.close_file = open_resource(self.resource)
 
         handle = None
-        
+
         if self.detect_header:
-            
+
             sample = self.file.read(self.sample_size)
 
             # Encoding test
@@ -196,13 +197,13 @@ class CSVDataSource(base.DataSource):
             self.read_header = sniffer.has_header(sample)
 
             self.file.seek(0)
-            
+
         if self.dialect:
             if type(self.dialect) == str:
                 dialect = csv.get_dialect(self.dialect)
             else:
                 dialect = self.dialect
-                
+
             self.reader_args["dialect"] = dialect
 
         # self.reader = csv.reader(handle, **self.reader_args)
@@ -213,19 +214,19 @@ class CSVDataSource(base.DataSource):
         if self.skip_rows:
             for i in range(0, self.skip_rows):
                 self.reader.next()
-                
+
         # Initialize field list
         if self.read_header:
             field_names = self.reader.next()
-            
+
             # Fields set explicitly take priority over what is read from the
             # header. (Issue #17 might be somehow related)
             if not self.fields:
                 fields = [ (name, "string", "default") for name in field_names]
-                self.fields = brewery.metadata.FieldList(fields)
-            
+                self.fields = FieldList(fields)
+
         self.reader.set_fields(self.fields)
-        
+
     def finalize(self):
         if self.file and self.close_file:
             self.file.close()
@@ -242,17 +243,17 @@ class CSVDataSource(base.DataSource):
         for row in self.reader:
             yield dict(zip(fields, row))
 
-class CSVDataTarget(base.DataTarget):
-    def __init__(self, resource, write_headers=True, truncate=True, encoding="utf-8", 
+class CSVDataTarget(DataTarget):
+    def __init__(self, resource, write_headers=True, truncate=True, encoding="utf-8",
                 dialect=None,fields=None, **kwds):
         """Creates a CSV data target
-        
+
         :Attributes:
             * resource: target object - might be a filename or file-like
               object
             * write_headers: write field names as headers into output file
             * truncate: remove data from file before writing, default: True
-            
+
         """
         self.resource = resource
         self.write_headers = write_headers
@@ -264,20 +265,20 @@ class CSVDataTarget(base.DataTarget):
 
         self.close_file = False
         self.file = None
-        
+
     def initialize(self):
         mode = "w" if self.truncate else "a"
 
-        self.file, self.close_file = base.open_resource(self.resource, mode)
+        self.file, self.close_file = open_resource(self.resource, mode)
 
-        self.writer = UnicodeWriter(self.file, encoding = self.encoding, 
+        self.writer = UnicodeWriter(self.file, encoding = self.encoding,
                                     dialect = self.dialect, **self.kwds)
-        
+
         if self.write_headers:
             self.writer.writerow(self.fields.names())
 
         self.field_names = self.fields.names()
-        
+
     def finalize(self):
         if self.file and self.close_file:
             self.file.close()
@@ -289,5 +290,5 @@ class CSVDataTarget(base.DataTarget):
                 row.append(obj.get(field))
         else:
             row = obj
-                
+
         self.writer.writerow(row)

@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from .base import DataTarget, open_resource
 
-import base
 
-class SimpleHTMLDataTarget(base.DataTarget):
-    def __init__(self, resource, html_header = True, html_footer = None, 
+class SimpleHTMLDataTarget(DataTarget):
+    def __init__(self, resource, html_header = True, html_footer = None,
                  write_headers = True, table_attributes = None,
                 ):
         """Creates a HTML data target with simple naive HTML generation. No package that generates
         document node tree is used, just plain string concatenation.
-        
+
         :Attributes:
             * resource: target object - might be a filename or file-like object - you can stream
               HTML table data into existing opened file.
@@ -26,8 +27,8 @@ class SimpleHTMLDataTarget(base.DataTarget):
         self.resource = resource
         self.write_headers = write_headers
         self.table_attributes = table_attributes
-        
-        if html_header == True:
+
+        if html_header:
             self.html_header = """
             <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
             <html>
@@ -40,17 +41,16 @@ class SimpleHTMLDataTarget(base.DataTarget):
             self.html_header = html_header
         else:
             self.html_header = ""
-            
+
         if html_footer == True:
-            self.html_footer = """
-            </body>"""
+            self.html_footer = """</body>"""
         elif html_footer and html_footer != True:
             self.html_footer = html_footer
         else:
             self.html_footer = ""
-        
+
     def initialize(self):
-        self.handle, self.close_file = base.open_resource(self.resource, "w")
+        self.handle, self.close_file = open_resource(self.resource, "w")
 
         if self.html_header:
             self.handle.write(self.html_header)
@@ -62,7 +62,7 @@ class SimpleHTMLDataTarget(base.DataTarget):
                 attr_string += u' %s="%s"\n' % attr_value
 
         string = u"<table%s>\n" % attr_string
-            
+
         if self.write_headers:
             string += u"<tr>"
             for field in self.fields:
@@ -70,13 +70,13 @@ class SimpleHTMLDataTarget(base.DataTarget):
                     header = field.label
                 else:
                     header = field.name
-                
+
                 string += u"  <th>%s</th>\n" % header
 
             string += u"</tr>\n"
-            
+
         self.handle.write(string)
-        
+
     def append(self, obj):
         if type(obj) == dict:
             row = []
@@ -98,7 +98,6 @@ class SimpleHTMLDataTarget(base.DataTarget):
 
         if self.html_footer:
             self.handle.write(self.html_footer)
-        
+
         if self.close_file:
             self.handle.close()
-        

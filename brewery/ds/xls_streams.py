@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import base
+from __future__ import absolute_import
+from .base import open_resource, DataSource
+from ..metadata import FieldList
 import datetime
-from brewery.metadata import FieldList
 
 try:
     import xlrd
@@ -11,7 +11,7 @@ except:
     from brewery.utils import MissingPackage
     xlrd = MissingPackage("xlrd", "Reading MS Excel XLS Files", "http://pypi.python.org/pypi/xlrd")
 
-class XLSDataSource(base.DataSource):
+class XLSDataSource(DataSource):
     """Reading Microsoft Excel XLS Files
 
     Requires the xlrd package (see pypi).
@@ -20,11 +20,11 @@ class XLSDataSource(base.DataSource):
     """
     def __init__(self, resource, sheet=None, encoding=None, skip_rows=None, read_header=True):
         """Creates a XLS spreadsheet data source stream.
-        
+
         :Attributes:
             * resource: file name, URL or file-like object
             * sheet: sheet index number (as int) or sheet name (as str)
-            * read_header: flag determining whether first line contains header or not. 
+            * read_header: flag determining whether first line contains header or not.
                 ``True`` by default.
         """
         self.resource = resource
@@ -41,7 +41,7 @@ class XLSDataSource(base.DataSource):
         """Initialize XLS source stream:
         """
 
-        self.file, self.close_file = base.open_resource(self.resource)
+        self.file, self.close_file = open_resource(self.resource)
 
         self.workbook = xlrd.open_workbook(file_contents=self.file.read(),
                                            encoding_override=self.encoding)
@@ -108,7 +108,7 @@ class XLSRowIterator(object):
 
     def _cell_value(self, cell):
         """Convert Excel cell into value of a python type
-        
+
         (from Swiss XlsReader.cell_to_python)"""
 
         # annoying need book argument for datemode

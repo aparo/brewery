@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import base
-import brewery.metadata
+from __future__ import absolute_import
+from .base import DataSource, DataTarget
+from ..metadata import Field, FieldList
 
 try:
     import sqlalchemy
@@ -94,7 +94,7 @@ def fields_from_table(table):
     fields = []
 
     for column in table.columns:
-        field = brewery.metadata.Field(name=column.name)
+        field = Field(name=column.name)
         field.concrete_storage_type = column.type
 
         for conv in _sql_to_brewery_types:
@@ -111,12 +111,14 @@ def fields_from_table(table):
 
         fields.append(field)
 
-    return brewery.metadata.FieldList(fields)
+    return FieldList(fields)
 
-def concrete_storage_type(field, type_map={}):
+def concrete_storage_type(field, type_map=None):
     """Derives a concrete storage type for the field based on field conversion
        dictionary"""
 
+    if type_map is None:
+        type_map={}
     concrete_type = field.concrete_storage_type
 
     if not isinstance(concrete_type, sqlalchemy.types.TypeEngine):
@@ -132,7 +134,7 @@ def concrete_storage_type(field, type_map={}):
 
     return concrete_type
 
-class SQLDataSource(base.DataSource):
+class SQLDataSource(DataSource):
     """docstring for ClassName
     """
     def __init__(self, connection=None, url=None,
@@ -209,7 +211,7 @@ class SQLDataSource(base.DataSource):
             record = dict(zip(fields, row))
             yield record
 
-class SQLDataTarget(base.DataTarget):
+class SQLDataTarget(DataTarget):
     """docstring for ClassName
     """
     def __init__(self, connection=None, url=None,
@@ -321,7 +323,7 @@ class SQLDataTarget(base.DataTarget):
 
         for field in self.fields:
             # FIXME: hey, what about duck-typing?
-            if not isinstance(field, brewery.metadata.Field):
+            if not isinstance(field, Field):
                 raise ValueError("field %s is not subclass of brewery.metadata.Field" % (field))
 
             concrete_type = concrete_storage_type(field, self.concrete_type_map)

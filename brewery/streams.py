@@ -2,11 +2,10 @@
 
 import threading
 import sys
-from brewery.nodes.base import node_dictionary, TargetNode, NodeFinished
-from brewery.utils import get_logger
-from brewery.nodes import *
-from brewery.common import *
-from .graph import *
+from .common import StreamRuntimeError
+from .graph import Graph
+from .nodes.base import node_dictionary, TargetNode, NodeFinished, Node
+from .utils import get_logger
 
 __all__ = [
     "Stream",
@@ -379,7 +378,7 @@ class Stream(Graph):
 
             targets = self.node_targets(node)
             for target in targets:
-                self.logger.debug("  connecting with %s" % (target))
+                self.logger.debug("  connecting with %s" % target)
                 pipe = Pipe()
                 node.add_output(pipe)
                 target.add_input(pipe)

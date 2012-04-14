@@ -1,8 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import copy
 import itertools
-import functools
 import re
-# from collections import OrderedDict
 
 __all__ = [
     "Field",

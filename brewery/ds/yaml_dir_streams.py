@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import base
+from __future__ import absolute_import
+from .base import DataSource, DataTarget
 import string
 import os
 import shutil
@@ -12,23 +12,23 @@ except:
     from brewery.utils import MissingPackage
     yaml = MissingPackage("PyYAML", "YAML directory data source/target", "http://pyyaml.org/")
 
-class YamlDirectoryDataSource(base.DataSource):
+class YamlDirectoryDataSource(DataSource):
     """docstring for ClassName
     """
     def __init__(self, path, extension="yml", expand=False, filename_field=None):
         """Creates a YAML directory data source stream.
-        
+
         The data source reads files from a directory and treats each file as single record. For example,
         following directory will contain 3 records::
-        
+
             data/
                 contract_0.yml
                 contract_1.yml
                 contract_2.yml
-        
+
         Optionally one can specify a field where file name will be stored.
-        
-        
+
+
         :Attributes:
             * path: directory with YAML files
             * extension: file extension to look for, default is ``yml``,if none is given, then
@@ -37,7 +37,7 @@ class YamlDirectoryDataSource(base.DataSource):
                 separated key path to the child.. Default: False
             * filename_field: if present, then filename is streamed in a field with given name,
               or if record is requested, then filename will be in first field.
-        
+
         """
         self.path = path
         self.expand = expand
@@ -77,13 +77,13 @@ class YamlDirectoryDataSource(base.DataSource):
             yield row
 
 
-class YamlDirectoryDataTarget(base.DataTarget):
+class YamlDirectoryDataTarget(DataTarget):
     """docstring for YamlDirectoryDataTarget
     """
     def __init__(self, path, filename_template="record_${__index}.yml", expand=False,
                     filename_start_index=0, truncate=False):
         """Creates a directory data target with YAML files as records.
-        
+
         :Attributes:
             * path: directory with YAML files
             * extension: file extension to use

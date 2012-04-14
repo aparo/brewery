@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from .base import DataTarget
+from ..dq.field_statistics import FieldStatistics
 
-import base
-from brewery import dq
-
-class StreamAuditor(base.DataTarget):
+class StreamAuditor(DataTarget):
     """Target stream for auditing data values from stream. For more information about probed value
     properties, please refer to :class:`brewery.dq.FieldStatistics`"""
     def __init__(self, distinct_threshold = 10):
@@ -14,19 +14,19 @@ class StreamAuditor(base.DataTarget):
         self.stats = {}
         self.distinct_threshold = distinct_threshold
         self._field_names = None
-        
+
     def initialize(self):
         self.record_count = 0
 
     def append(self, obj):
         """Probe row or record and update statistics."""
         self.record_count += 1
-        
-        if type(obj) == dict:
+
+        if isinstance(obj, dict):
             self._probe_record(obj)
         else:
             self._probe_row(obj)
-    
+
     def _probe_record(self, record):
         for field, value in record.items():
             stat = self._field_stat(field)
@@ -47,15 +47,15 @@ class StreamAuditor(base.DataTarget):
     def _field_stat(self, field):
         """Get single field statistics. Create if does not exist"""
         if not field in self.stats:
-            stat = dq.FieldStatistics(field, distinct_threshold = self.distinct_threshold)
+            stat = FieldStatistics(field, distinct_threshold = self.distinct_threshold)
             self.stats[field] = stat
         else:
             stat = self.stats[field]
         return stat
-        
-    @property        
+
+    @property
     def field_statistics(self):
-        """Return field statistics as dictionary: keys are field names, values are 
+        """Return field statistics as dictionary: keys are field names, values are
         :class:`brewery.dq.FieldStatistics` objects"""
         return self.stats
 

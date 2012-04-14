@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 
-import base
-import brewery.metadata as metadata
+from .base import DataSource
+from ..metadata import FieldList
+
 try:
     import gdata.spreadsheet.text_db
 except:
@@ -12,9 +14,9 @@ except:
 # Documentation:
 # http://gdata-python-client.googlecode.com/svn/trunk/pydocs/
 
-class GoogleSpreadsheetDataSource(base.DataSource):
+class GoogleSpreadsheetDataSource(DataSource):
     """Reading data from a google spreadsheet.
-    
+
     Some code taken from OKFN Swiss library.
     """
     def __init__(self, spreadsheet_key=None, spreadsheet_name=None,
@@ -22,9 +24,9 @@ class GoogleSpreadsheetDataSource(base.DataSource):
                 query_string="",
                 username=None, password=None):
         """Creates a Google Spreadsheet data source stream.
-        
+
         :Attributes:
-            * spreadsheet_key: The unique key for the spreadsheet, this 
+            * spreadsheet_key: The unique key for the spreadsheet, this
                   usually in the the form 'pk23...We' or 'o23...423.12,,,3'.
             * spreadsheet_name: The title of the spreadsheets.
             * worksheet_id: ID of a worksheet
@@ -32,14 +34,14 @@ class GoogleSpreadsheetDataSource(base.DataSource):
             * query_string: optional query string for row selection
             * username: Google account user name
             * password: Google account password
-            
+
         You should provide either spreadsheet_key or spreadsheet_name, if more than one spreadsheet with
         given name are found, then the first in list returned by Google is used.
-        
+
         For worksheet selection you should provide either worksheet_id or worksheet_name. If more than
         one worksheet with given name are found, then the first in list returned by Google is used. If
         no worksheet_id nor worksheet_name are provided, then first worksheet in the workbook is used.
-        
+
         For details on query string syntax see the section on sq under
         http://code.google.com/apis/spreadsheets/reference.html#list_Parameters
         """
@@ -59,7 +61,7 @@ class GoogleSpreadsheetDataSource(base.DataSource):
     def initialize(self):
         """Connect to the Google documents, authenticate.
         """
-            
+
         self.client = gdata.spreadsheet.text_db.DatabaseClient(username=self.username, password=self.password)
 
         dbs = self.client.GetDatabases(spreadsheet_key=self.spreadsheet_key,
@@ -77,7 +79,7 @@ class GoogleSpreadsheetDataSource(base.DataSource):
         self.worksheet.LookupFields()
 
         # FIXME: try to determine field types from next row
-        self._fields = metadata.FieldList(self.worksheet.fields)
+        self._fields = FieldList(self.worksheet.fields)
 
     def rows(self):
         if not self.worksheet:
